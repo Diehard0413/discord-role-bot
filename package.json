@@ -1,0 +1,12 @@
+{
+  "name": "discord-role-bot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:Diehard0413/discord-role-bot.git",
+  "author": "diehard0413 <diehard0413@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^14.15.2",
+    "dotenv": "^16.4.5"
+  }
+}
