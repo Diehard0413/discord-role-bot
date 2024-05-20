@@ -1,7 +1,5 @@
 import { DataSource } from "typeorm";
 import { database } from "../config/config.json";
-import { NonceCoolDown } from "./noncecooldown";
-import { UserCoolDown } from "./usercooldown";
 import "reflect-metadata";
 
 const name: string = process.env.DB_USERNAME as string;
@@ -17,7 +15,6 @@ export const Source = new DataSource({
 	database: database.database,
 	synchronize: true,
 	logging: false,
-	entities: [UserCoolDown, NonceCoolDown],
 	subscribers: [],
 	migrations: [],
 });

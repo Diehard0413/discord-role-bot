@@ -1,6 +1,4 @@
-import { NonceCoolDown } from "./noncecooldown";
 import { Source } from "./source";
-import { UserCoolDown } from "./usercooldown";
 
 export const InitializeDb = (): void => {
 	Source.initialize()
@@ -12,4 +10,4 @@ export const InitializeDb = (): void => {
 		});
 };
 
-export { Source, UserCoolDown, NonceCoolDown };
+export { Source };

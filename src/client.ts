@@ -1,5 +1,4 @@
 // Exporting the Client
-
 import { GatewayIntentBits } from "discord.js";
 
 import { ExtendedClient } from "./classes/ExtendedClient";

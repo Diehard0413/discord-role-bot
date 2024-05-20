@@ -1,0 +1,16 @@
+{
+	"bot": {
+		"clientId": "1241100098960621579",
+		"guildId": "1234853084635730042"
+	},
+	"channels": {
+		"general": "1234853247395823697",
+		"appeal": "1241104243482689599"
+	},
+	"bypassRoles": ["0000000000000"],
+	"database": {
+		"host": "localhost",
+		"port": 5432,
+		"database": "bwoofa-database"
+	}
+}

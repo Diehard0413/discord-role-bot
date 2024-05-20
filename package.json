@@ -1,9 +1,9 @@
 {
-	"name": "discord-faucet-bot",
+	"name": "discord-role-bot",
 	"version": "2.0.0",
-	"description": "Discord Faucet Bot to allow people request for gETH on Base goerli",
+	"description": "",
 	"main": "index.js",
-	"author": "0xdiehard",
+	"author": "genie8848",
 	"engines": {
 		"node": ">=16.9.0"
 	},
@@ -21,19 +21,19 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/Grandbase-io/grandbase-faucet-bot.git"
+		"url": ""
 	},
 	"bugs": {
-		"url": "https://github.com/Grandbase-io/grandbase-faucet-bot/issues"
+		"url": ""
 	},
-	"homepage": "https://github.com/Grandbase-io/grandbase-faucet-bot#readme",
+	"homepage": "",
 	"license": "MIT",
 	"keywords": [
-		"faucet",
+		"og",
 		"bot",
 		"discord",
-		"goerli",
-		"grandbase"
+		"bwoofa",
+		"borker"
 	],
 	"dependencies": {
 		"@discordjs/rest": "^1.3.0",
@@ -47,11 +47,11 @@
 		"ts-node": "^10.9.2",
 		"ts-node-dev": "^2.0.0",
 		"typeorm": "^0.3.10",
-		"typescript": "^5.3.3"
+		"typescript": "^5.4.5"
 	},
 	"devDependencies": {
 		"@types/glob": "^8.0.0",
-		"@types/node": "^18.11.9",
+		"@types/node": "^20.12.12",
 		"@typescript-eslint/eslint-plugin": "^5.42.1",
 		"@typescript-eslint/parser": "^5.42.1",
 		"eslint": "^8.27.0",

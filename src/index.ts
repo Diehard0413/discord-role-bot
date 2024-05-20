@@ -1,51 +1,20 @@
 // Starting Point of the project : run `node .`
-import { Collection, Client, GatewayIntentBits, Partials } from "discord.js";
+import { TextChannel, Client, GatewayIntentBits, Partials } from "discord.js";
 import "dotenv/config";
-import Keyv from "keyv";
-import fs from "node:fs";
-import path from "node:path";
-
-import client from "./client"; // Get Client
 import { InitializeDb } from "./database";
 
-// KeyV Creation and Handling
-const keyv = new Keyv();
-keyv.on("error", (err?: Error) => {
-	console.error("Keyv connection error:", err.message);
-	throw new Error("Error KEYV: " + err.message);
-});
+class CustomClient extends Client {
+    inviteCache: Map<string, number>;
+    lastMessageTimes: Map<string, number>;
 
-// Run the Events
-const eventsPath = path.join(__dirname, "events");
-const eventFiles = fs.readdirSync(eventsPath);
-
-for (const file of eventFiles) {
-	const ePath = path.join(eventsPath, file);
-	const event = require(ePath);
-	if (event.once) {
-		client.once(event.name, (...args) => event.execute(...args));
-	} else {
-		client.on(event.name, (...args) => event.execute(keyv, client, ...args));
-	}
+    constructor(options: any) {
+        super(options);
+        this.inviteCache = new Map();
+        this.lastMessageTimes = new Map();
+    }
 }
 
-// Gets all command files, and sets them
-client.commands = new Collection();
-const commandsPath = path.join(__dirname, "commands");
-const commandFiles = fs.readdirSync(commandsPath);
-
-for (const file of commandFiles) {
-	const filePath = path.join(commandsPath, file);
-	const command = require(filePath);
-	//Set a new item in the Collection
-	// With the key as the command name and the value as the exported module
-	client.commands.set(command.data.name, command);
-}
-
-// Database Connection
-InitializeDb();
-
-const client = new Client({ 
+const client = new CustomClient({ 
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMembers,
@@ -57,46 +26,62 @@ const client = new Client({
     partials: [Partials.Message, Partials.Channel, Partials.Reaction]
 });
 
+// Database Connection
+InitializeDb();
+
 const GUILD_ID = process.env.GUILD_ID;
 const GENERAL_CHANNEL_ID = process.env.GENERAL_CHANNEL_ID;
 const APPEAL_CHANNEL_ID = process.env.APPEAL_CHANNEL_ID;
 
 client.once('ready', async () => {
     console.log(`Logged in as ${client.user.tag}!`);
-    const guild = await client.guilds.fetch(GUILD_ID);
-    if (!guild) {
-        console.error('Unable to find guild');
-        process.exit(1);
+    try {
+        const guild = await client.guilds.fetch(GUILD_ID);
+        if (!guild) {
+            console.error('Unable to find guild');
+            process.exit(1);
+        }
+
+        if (!guild.invites) {
+            console.error('Bot does not have permission to manage invites');
+            process.exit(1);
+        }
+
+        const invites = await guild.invites.fetch();
+        client.inviteCache = new Map(invites.map(invite => [invite.code, invite.uses]));
+    } catch (error) {
+        console.error('Error fetching guild invites:', error);
     }
-    
-    const invites = await guild.invites.fetch();
-    client.inviteCache = new Map(invites.map(invite => [invite.code, invite.uses]));
 });
 
 client.on('guildMemberAdd', async member => {
-    const guild = member.guild;
-    const newInvites = await guild.invites.fetch();
-    const oldInvites = client.inviteCache;
+    try {
+        const guild = member.guild;
+        const newInvites = await guild.invites.fetch();
+        const oldInvites = client.inviteCache;
 
-    const invite = newInvites.find(i => oldInvites.get(i.code) < i.uses);
-    client.inviteCache = new Map(newInvites.map(inv => [inv.code, inv.uses]));
+        const invite = newInvites.find(i => oldInvites.get(i.code) < i.uses);
+        client.inviteCache = new Map(newInvites.map(inv => [inv.code, inv.uses]));
 
-    if (invite) {
-        const inviter = await guild.members.fetch(invite.inviter.id);
-        const inviteCount = invite.uses;
+        if (invite) {
+            const inviter = await guild.members.fetch(invite.inviter.id);
+            const inviteCount = invite.uses;
 
-        const ogRole = guild.roles.cache.find(role => role.name === 'OG');
-        const borkerRole = guild.roles.cache.find(role => role.name === 'Borker');
-        
-        if (inviteCount >= 5 && !inviter.roles.cache.has(ogRole.id)) {
-            await inviter.roles.add(ogRole);
-            const generalChannel = guild.channels.cache.get(GENERAL_CHANNEL_ID);
-            if (generalChannel) {
-                generalChannel.send(`${inviter} has earned the OG role for inviting 5 or more members!`);
+            const ogRole = guild.roles.cache.find(role => role.name === 'OG');
+            const borkerRole = guild.roles.cache.find(role => role.name === 'Borker');
+            
+            if (inviteCount >= 5 && !inviter.roles.cache.has(ogRole.id)) {
+                await inviter.roles.add(ogRole);
+                const generalChannel = guild.channels.cache.get(GENERAL_CHANNEL_ID);
+                if (generalChannel && generalChannel instanceof TextChannel) {
+                    generalChannel.send(`${inviter} has earned the OG role for inviting 5 or more members!`);
+                }
+            } else if (inviteCount < 5) {
+                await inviter.roles.add(borkerRole);
             }
-        } else if (inviteCount < 5) {
-            await inviter.roles.add(borkerRole);
         }
+    } catch (error) {
+        console.error('Error handling guild member add:', error);
     }
 });
 
@@ -110,19 +95,20 @@ client.on('messageCreate', async message => {
     const badBorkersRole = message.guild.roles.cache.find(role => role.name === 'bad borkers');
 
     if (member.roles.cache.has(bwoofaRole.id)) {
-        member.lastMessageTime = Date.now();
+        client.lastMessageTimes.set(member.id, Date.now());
     }
 
     setInterval(async () => {
         const now = Date.now();
-        const timeDiff = now - (member.lastMessageTime || now);
+        const lastMessageTime = client.lastMessageTimes.get(member.id) || now;
+        const timeDiff = now - lastMessageTime;
 
         if (timeDiff > 3 * 24 * 60 * 60 * 1000 && member.roles.cache.has(bwoofaRole.id)) {
             await member.roles.remove(bwoofaRole);
             await member.roles.add(borkerRole);
             await member.roles.add(badBorkersRole);
             const appealChannel = message.guild.channels.cache.get(APPEAL_CHANNEL_ID);
-            if (appealChannel) {
+            if (appealChannel && appealChannel instanceof TextChannel) {
                 appealChannel.send(`${member} has been inactive for over 3 days and has been demoted to the bad borkers role. You can appeal here.`);
             }
         }
@@ -141,6 +127,7 @@ client.on('messageReactionAdd', async (reaction, user) => {
 
     const appealChannel = reaction.message.channel;
     if (appealChannel.id === APPEAL_CHANNEL_ID) {
+        const member = await reaction.message.guild.members.fetch(user.id);
         const ogBwoofaRole = reaction.message.guild.roles.cache.find(role => role.name === 'OG bwoofa');
         const bwoofaRole = reaction.message.guild.roles.cache.find(role => role.name === 'bwoofa');
 
@@ -149,10 +136,10 @@ client.on('messageReactionAdd', async (reaction, user) => {
             const threshold = 3; // define the threshold for votes
 
             if (votes >= threshold) {
-                const member = reaction.message.mentions.members.first();
-                if (reaction.emoji.name === '👍' && (user.roles.cache.has(ogBwoofaRole.id) || user.roles.cache.has(bwoofaRole.id))) {
-                    await member.roles.remove(reaction.message.guild.roles.cache.find(role => role.name === 'bad borkers'));
-                    await member.roles.add(reaction.message.guild.roles.cache.find(role => role.name === 'bwoofa'));
+                const appealMember = reaction.message.mentions.members.first();
+                if (reaction.emoji.name === '👍' && (member.roles.cache.has(ogBwoofaRole.id) || member.roles.cache.has(bwoofaRole.id))) {
+                    await appealMember.roles.remove(reaction.message.guild.roles.cache.find(role => role.name === 'bad borkers'));
+                    await appealMember.roles.add(reaction.message.guild.roles.cache.find(role => role.name === 'bwoofa'));
                 }
                 await reaction.message.delete();
             }
@@ -162,9 +149,9 @@ client.on('messageReactionAdd', async (reaction, user) => {
 
 // Login to Bot with token
 try {
-	const token: string = process.env.BOT_TOKEN as string;
-	console.log(">>>>>>>> Discord login >>>>>>>>", token);
-	client.login(token);
+    const token: string = process.env.BOT_TOKEN as string;
+    console.log(">>>>>>>> Discord login >>>>>>>>", token);
+    client.login(token);
 } catch (error) {
-	console.error(`Error login to BOT at index : ${error}`);
+    console.error(`Error login to BOT at index : ${error}`);
 }
