@@ -76,5 +76,8 @@ dist
 # Serverless Webpack directories
 .webpack/
 
+# config files
+config.json
+
 # lock files
 yarn.lock
