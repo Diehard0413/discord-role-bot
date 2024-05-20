@@ -1,6 +1,6 @@
 # Bwoofa Discord role Bot
 
-This is a Discord Bot that dispenses Testnet ETH written in TypeScript.
+This is a Discord Bot written in TypeScript.
 
 ## Setup
 

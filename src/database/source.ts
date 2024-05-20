@@ -4,7 +4,6 @@ import "reflect-metadata";
 
 const name: string = process.env.DB_USERNAME as string;
 const pwd: string = process.env.DB_PASSWORD as string;
-console.log(">>>>>>>> DataSource >>>>>>>>", name, pwd);
 
 export const Source = new DataSource({
 	type: "postgres",

@@ -150,7 +150,6 @@ client.on('messageReactionAdd', async (reaction, user) => {
 // Login to Bot with token
 try {
     const token: string = process.env.BOT_TOKEN as string;
-    console.log(">>>>>>>> Discord login >>>>>>>>", token);
     client.login(token);
 } catch (error) {
     console.error(`Error login to BOT at index : ${error}`);
