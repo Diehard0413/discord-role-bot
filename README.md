@@ -10,8 +10,11 @@ Create a file called `.env` and paste in the following lines. Make sure to fill 
 
 ```env
 BOT_TOKEN="<bot-token>"
-DB_USERNAME="<username>"
-DB_PASSWORD="<password>"
+DATABASE_URL=postgres://username:password@hostname:port/database
+CLIENT_ID="<client-id>"
+GUILD_ID="<guild-id>"
+GENERAL_CHANNEL_ID="<general-id>"
+APPEAL_CHANNEL_ID="<appeal-id>"
 ```
 
 ## Database

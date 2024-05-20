@@ -1,9 +1,10 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
 import { CommandInteraction } from 'discord.js';
+import { db } from '../database';
 
 export const data = new SlashCommandBuilder()
-    .setName('trackinvites')
-    .setDescription('Check the number of invites a user has')
+    .setName('queryinvites')
+    .setDescription('Check the number of invites and invitee IDs for a user')
     .addUserOption(option => 
         option.setName('user')
             .setDescription('The user to check invites for')
@@ -17,15 +18,30 @@ export const execute = async (interaction: CommandInteraction) => {
         return;
     }
 
-    const member = await interaction.guild!.members.fetch(user.id);
-    const invites = await interaction.guild!.invites.fetch();
+    try {
+        const inviterId = user.id;
 
-    const userInvites = invites.filter(invite => invite.inviter?.id === user.id);
-    let inviteCount = 0;
+        // Fetch invite count
+        const inviteCountResult = await db.query(`
+            SELECT invite_count FROM invite_tracking WHERE inviter_id = $1
+        `, [inviterId]);
 
-    userInvites.forEach(invite => {
-        inviteCount += invite.uses!;
-    });
+        const inviteCount = inviteCountResult.rows[0] ? inviteCountResult.rows[0].invite_count : 0;
 
-    await interaction.reply(`${member.user.tag} has ${inviteCount} invites.`);
+        // Fetch invitee IDs
+        const inviteeIdsResult = await db.query(`
+            SELECT member_id FROM member_invites WHERE inviter_id = $1
+        `, [inviterId]);
+
+        const inviteeIds = inviteeIdsResult.rows.map(row => row.member_id);
+
+        // Respond with the data
+        await interaction.reply({
+            content: `${user.tag} has invited ${inviteCount} members.\nInvitee IDs: ${inviteeIds.join(', ')}`,
+            ephemeral: true
+        });
+    } catch (error) {
+        console.error('Error querying invites:', error);
+        await interaction.reply({ content: 'There was an error while querying invites.', ephemeral: true });
+    }
 };
