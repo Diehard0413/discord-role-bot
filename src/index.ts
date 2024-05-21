@@ -1,4 +1,4 @@
-import { TextChannel, Client, GatewayIntentBits, Partials, CommandInteraction, PermissionsBitField, GuildMember } from "discord.js";
+import { TextChannel, Client, GatewayIntentBits, Partials, CommandInteraction, PermissionsBitField } from "discord.js";
 import "dotenv/config";
 import { InitializeDb, db } from "./database";
 import InviteTracker from "./classes/InviteTracker";
@@ -71,14 +71,11 @@ const rest = new REST({ version: '9' }).setToken(process.env.BOT_TOKEN!);
 (async () => {
     try {
         console.log('Started refreshing application (/) commands.');
-
         const commands = Array.from(client.commands.values()).map(command => command.data.toJSON());
-
         await rest.put(
             Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
             { body: commands }
         );
-
         console.log('Successfully reloaded application (/) commands.');
     } catch (error) {
         console.error(error);
@@ -144,7 +141,7 @@ tracker.on('guildMemberAdd', async (member, type, invite) => {
             generalChannel.send(`${inviter} has invited ${inviteCount} member(s)!`);
 
             const ogRole = guild.roles.cache.find(role => role.name === 'OG Bwoofa')!;
-            const borkerRole = guild.roles.cache.find(role => role.name === 'K9 bork')!;
+            const fatDawgsRole = guild.roles.cache.find(role => role.name === 'Fat Dawgs')!;
 
             const botMember = await guild.members.fetch(client.user!.id);
 
@@ -153,17 +150,15 @@ tracker.on('guildMemberAdd', async (member, type, invite) => {
                 return;
             }
 
-            if (botMember.roles.highest.position <= ogRole.position || botMember.roles.highest.position <= borkerRole.position) {
+            if (botMember.roles.highest.position <= ogRole.position) {
                 console.error('Bot role is not high enough to manage the roles');
                 return;
             }
 
-            if (inviteCount >= 5 && !inviter.roles.cache.has(ogRole.id)) {
+            const ogRoleMembersCount = guild.roles.cache.get(ogRole.id)?.members.size || 0;
+            if (inviteCount >= 5 && ogRoleMembersCount < 200 && !inviter.roles.cache.has(ogRole.id) && inviter.roles.cache.has(fatDawgsRole.id)) {
                 await inviter.roles.add(ogRole);
                 generalChannel.send(`${inviter} has earned the OG role for inviting 5 or more members!`);
-            } else if (inviteCount < 5 && !inviter.roles.cache.has(borkerRole.id)) {
-                await inviter.roles.add(borkerRole);
-                generalChannel.send(`${inviter} has earned the K9 bork role for inviting less than 5 members!`);
             }
 
             // Add or update invite tracking in the database
@@ -205,19 +200,22 @@ client.on('guildMemberRemove', async (member) => {
             RETURNING invite_count
         `, [inviterId])).rows[0].invite_count;
 
-        const inviter = await member.guild.members.fetch(inviterId);
+        const guild = member.guild;
+        const inviter = await guild.members.fetch(inviterId);
 
-        const generalChannel = member.guild.channels.cache.get(GENERAL_CHANNEL_ID);
+        const generalChannel = guild.channels.cache.get(GENERAL_CHANNEL_ID);
+
         if (generalChannel && generalChannel instanceof TextChannel) {
             generalChannel.send(`${inviter} now has ${inviteCount} invites after ${member.user.username} left.`);
-        }
 
-        // Handle role removal if needed
-        const ogRole = member.guild.roles.cache.find(role => role.name === 'OG Bwoofa')!;
-        const borkerRole = member.guild.roles.cache.find(role => role.name === 'K9 bork')!;
-        if (inviteCount < 5 && inviter.roles.cache.has(ogRole.id)) {
-            await inviter.roles.remove(ogRole);
-            await inviter.roles.add(borkerRole);
+            // Handle role removal if needed
+            const ogRole = guild.roles.cache.find(role => role.name === 'OG Bwoofa')!;
+            const fatDawgsRole = guild.roles.cache.find(role => role.name === 'Fat Dawgs')!;
+
+            if (inviteCount < 5 && inviter.roles.cache.has(ogRole.id) && inviter.roles.cache.has(fatDawgsRole.id)) {
+                await inviter.roles.remove(ogRole);
+                generalChannel.send(`${inviter} can earn the OG role after inviting 5 or more members!`);
+            }
         }
     }
 });
@@ -228,29 +226,35 @@ client.on('messageCreate', async (message) => {
     if (!member) return;
 
     const bwoofaRole = message.guild.roles.cache.find(role => role.name === 'Bwoofa')!;
-    const borkerRole = message.guild.roles.cache.find(role => role.name === 'K9 bork')!;
-    const badBorkersRole = message.guild.roles.cache.find(role => role.name === 'Bad Borker')!;
-
     if (member.roles.cache.has(bwoofaRole.id)) {
         client.lastMessageTimes.set(member.id, Date.now());
     }
+});
 
-    setInterval(async () => {
-        const now = Date.now();
-        const lastMessageTime = client.lastMessageTimes.get(member.id) || now;
+setInterval(async () => {
+    const now = Date.now();
+    for (const [memberId, lastMessageTime] of client.lastMessageTimes) {
+        const member = await client.guilds.cache.get(GUILD_ID)?.members.fetch(memberId);
         const timeDiff = now - lastMessageTime;
 
-        if (timeDiff > 3 * 24 * 60 * 60 * 1000 && member.roles.cache.has(bwoofaRole.id)) {
+        if (member && timeDiff > 3 * 24 * 60 * 60 * 1000 && member.roles.cache.has('Bwoofa')) {
+            const bwoofaRole = member.guild.roles.cache.find(role => role.name === 'Bwoofa')!;
+            const badBorkersRole = member.guild.roles.cache.find(role => role.name === 'Bad Borker')!;
             await member.roles.remove(bwoofaRole);
-            await member.roles.add(borkerRole);
             await member.roles.add(badBorkersRole);
-            const appealChannel = message.guild.channels.cache.get(APPEAL_CHANNEL_ID);
+            const appealChannel = member.guild.channels.cache.get(APPEAL_CHANNEL_ID);
             if (appealChannel && appealChannel instanceof TextChannel) {
-                appealChannel.send(`${member} has been inactive for over 3 days and has been demoted to the bad borkers role. You can appeal here.`);
+                appealChannel.send(`${member} has been inactive for over 3 days and has been demoted to the bad borkers role. You can appeal here. Please tag @OG Bwoofa, @Bwoofa & @K9 bork to get their support.`);
+                await appealChannel.send(`@Bad Borker`);
+                await appealChannel.send(`@OG Bwoofa, @Bwoofa & @K9 bork`);
+                await appealChannel.send(`To get your role back, you need 20+ 👍 reactions from the community.`);
+                const appealMessage = await appealChannel.send(`${member}, please explain why you deserve your role back.`);
+                await appealMessage.react('👍');
+                await appealMessage.react('👎');
             }
         }
-    }, 24 * 60 * 60 * 1000);
-});
+    }
+}, 24 * 60 * 60 * 1000);
 
 client.on('messageReactionAdd', async (reaction, user) => {
     if (reaction.partial) {
@@ -264,22 +268,25 @@ client.on('messageReactionAdd', async (reaction, user) => {
 
     const appealChannel = reaction.message.channel;
     if (appealChannel.id === APPEAL_CHANNEL_ID) {
-        const member = await reaction.message.guild.members.fetch(user.id);
-        const ogBwoofaRole = reaction.message.guild.roles.cache.find(role => role.name === 'OG Bwoofa')!;
         const bwoofaRole = reaction.message.guild.roles.cache.find(role => role.name === 'Bwoofa')!;
+        const fcfsBwoofaRole = reaction.message.guild.roles.cache.find(role => role.name === 'FCFS Bwoofa')!;
+        const badBorkersRole = reaction.message.guild.roles.cache.find(role => role.name === 'Bad Borker')!;
+        
+        const votes = reaction.message.reactions.cache.get('👍')!.count - 1; // subtracting bot's vote
 
-        if (reaction.emoji.name === '👍' || reaction.emoji.name === '👎') {
-            const votes = reaction.message.reactions.cache.get('👍')!.count - 1; // subtracting bot's vote
-            const threshold = 3; // define the threshold for votes
-
-            if (votes >= threshold) {
-                const appealMember = reaction.message.mentions.members.first()!;
-                if (reaction.emoji.name === '👍' && (member.roles.cache.has(ogBwoofaRole.id) || member.roles.cache.has(bwoofaRole.id))) {
-                    await appealMember.roles.remove(reaction.message.guild.roles.cache.find(role => role.name === 'Bad Borker')!);
-                    await appealMember.roles.add(reaction.message.guild.roles.cache.find(role => role.name === 'Bwoofa')!);
-                }
-                await reaction.message.delete();
-            }
+        if (votes >= 20) {
+            const appealMember = reaction.message.mentions.members.first()!;
+            await appealMember.roles.add(bwoofaRole);
+            await appealMember.roles.remove(badBorkersRole);
+            appealChannel.send(`${appealMember} has successfully appealed and regained the Bwoofa role!`);
+            await reaction.message.delete();
+        } else if (votes >= 10 && votes < 20) {
+            const appealMember = reaction.message.mentions.members.first()!;
+            await appealMember.roles.add(fcfsBwoofaRole);
+            await appealMember.roles.remove(bwoofaRole);
+            await appealMember.roles.remove(badBorkersRole);
+            appealChannel.send(`${appealMember} has successfully appealed and received the FCFS Bwoofa role!`);
+            await reaction.message.delete();
         }
     }
 });
