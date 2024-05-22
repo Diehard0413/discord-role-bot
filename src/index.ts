@@ -267,7 +267,7 @@ client.on('messageReactionAdd', async (reaction, user) => {
         }
     }
 
-    handleReaction(reaction);
+    // handleReaction(reaction);
 });
 
 client.on('messageReactionRemove', async (reaction, user) => {
@@ -280,49 +280,49 @@ client.on('messageReactionRemove', async (reaction, user) => {
         }
     }
 
-    handleReaction(reaction);
+    // handleReaction(reaction);
 });
 
-const handleReaction = async (reaction: any) => {
-    const appealChannel = reaction.message.channel;
-    if (appealChannel.id === APPEAL_CHANNEL_ID) {
-        const bwoofaRole = reaction.message.guild.roles.cache.find(role => role.name === 'Bwoofa')!;
-        const fcfsBwoofaRole = reaction.message.guild.roles.cache.find(role => role.name === 'FCFS Bwoofa')!;
-        const badBorkersRole = reaction.message.guild.roles.cache.find(role => role.name === 'Bad Borker')!;
+// const handleReaction = async (reaction: any) => {
+//     const appealChannel = reaction.message.channel;
+//     if (appealChannel.id === APPEAL_CHANNEL_ID) {
+//         const bwoofaRole = reaction.message.guild.roles.cache.find(role => role.name === 'Bwoofa')!;
+//         const fcfsBwoofaRole = reaction.message.guild.roles.cache.find(role => role.name === 'FCFS Bwoofa')!;
+//         const badBorkersRole = reaction.message.guild.roles.cache.find(role => role.name === 'Bad Borker')!;
 
-        const thumbsUpVariants = ['👍', '👍🏻', '👍🏼', '👍🏽', '👍🏾', '👍🏿'];
-        const thumbsUpReactions = reaction.message.reactions.cache.filter(r => thumbsUpVariants.includes(r.emoji.name));
-        const totalVotes = thumbsUpReactions.reduce((acc, r) => acc + (r.count || 0), 0); // subtracting bot's vote
-        console.log(`Total Votes: ${totalVotes}`);
+//         const thumbsUpVariants = ['👍', '👍🏻', '👍🏼', '👍🏽', '👍🏾', '👍🏿'];
+//         const thumbsUpReactions = reaction.message.reactions.cache.filter(r => thumbsUpVariants.includes(r.emoji.name));
+//         const totalVotes = thumbsUpReactions.reduce((acc, r) => acc + (r.count || 0), 0); // subtracting bot's vote
+//         console.log(`Total Votes: ${totalVotes}`);
 
-        const appealMember = await reaction.message.guild.members.fetch(reaction.message.author.id);
-        if (!appealMember) {
-            console.error('Appeal member not found in message author.');
-            return;
-        }
+//         const appealMember = await reaction.message.guild.members.fetch(reaction.message.author.id);
+//         if (!appealMember) {
+//             console.error('Appeal member not found in message author.');
+//             return;
+//         }
 
-        if (totalVotes >= 2) {
-            await appealMember.roles.remove(fcfsBwoofaRole);
-            if (!appealMember.roles.cache.has(bwoofaRole.id)) {
-                await appealMember.roles.add(bwoofaRole);                
-                appealChannel.send(`${appealMember} has successfully appealed and regained the Bwoofa role!`);
-                // await reaction.message.delete();
-            }
-        } else if (totalVotes >= 1 && totalVotes < 2) {
-            await appealMember.roles.remove(bwoofaRole);
-            await appealMember.roles.remove(badBorkersRole);
-            if (!appealMember.roles.cache.has(fcfsBwoofaRole.id)) {
-                await appealMember.roles.add(fcfsBwoofaRole);                
-                appealChannel.send(`${appealMember} has successfully appealed and received the FCFS Bwoofa role!`);
-                // await reaction.message.delete();
-            }
-        } else {
-            await appealMember.roles.remove(fcfsBwoofaRole);
-            await appealMember.roles.add(badBorkersRole);
-            appealChannel.send(`${reaction.message.author} did not get enough votes. You can appeal again.`);
-        }
-    }
-};
+//         if (totalVotes >= 2) {
+//             await appealMember.roles.remove(fcfsBwoofaRole);
+//             if (!appealMember.roles.cache.has(bwoofaRole.id)) {
+//                 await appealMember.roles.add(bwoofaRole);                
+//                 appealChannel.send(`${appealMember} has successfully appealed and regained the Bwoofa role!`);
+//                 // await reaction.message.delete();
+//             }
+//         } else if (totalVotes >= 1 && totalVotes < 2) {
+//             await appealMember.roles.remove(bwoofaRole);
+//             await appealMember.roles.remove(badBorkersRole);
+//             if (!appealMember.roles.cache.has(fcfsBwoofaRole.id)) {
+//                 await appealMember.roles.add(fcfsBwoofaRole);                
+//                 appealChannel.send(`${appealMember} has successfully appealed and received the FCFS Bwoofa role!`);
+//                 // await reaction.message.delete();
+//             }
+//         } else {
+//             await appealMember.roles.remove(fcfsBwoofaRole);
+//             await appealMember.roles.add(badBorkersRole);
+//             appealChannel.send(`${reaction.message.author} did not get enough votes. You can appeal again.`);
+//         }
+//     }
+// };
 
 // Login to Bot with token
 try {
