@@ -20,12 +20,14 @@ class CustomClient extends Client {
     inviteCache: Map<string, number>;
     lastMessageTimes: Map<string, number>;
     commands: Map<string, Command>;
+    highestRoleAchieved: Map<string, string>; // Track the highest role achieved by each member
 
     constructor(options: any) {
         super(options);
         this.inviteCache = new Map();
         this.lastMessageTimes = new Map();
         this.commands = new Map();
+        this.highestRoleAchieved = new Map();
     }
 }
 
@@ -223,26 +225,34 @@ client.on('guildMemberRemove', async (member) => {
 // Inactivity Check and Role Management
 setInterval(async () => {
     const now = Date.now();
+
     client.lastMessageTimes.forEach(async (lastMessageTime, memberId) => {
         const timeDiff = now - lastMessageTime;
+
         const member = await client.guilds.cache.get(GUILD_ID)?.members.fetch(memberId);
         if (!member) return;
 
-        const bwoofaRole = member.roles.cache.find(role => role.name === 'Bwoofa')!;
-        const badBorkersRole = member.guild.roles.cache.find(role => role.name === 'Bad Borker')!;
-        if (timeDiff > 3 * 24 * 60 * 60 * 1000 && member.roles.cache.has(bwoofaRole.id)) {
+        const bwoofaRole = member.roles.cache.find(role => role.name === 'Bwoofa');
+        const badBorkersRole = member.guild.roles.cache.find(role => role.name === 'Bad Borker');
+        if (timeDiff > /*3 * 24 * 60 */ 60 * 1000 && bwoofaRole && member.roles.cache.has(bwoofaRole.id)) {
             await member.roles.remove(bwoofaRole);
             await member.roles.add(badBorkersRole);
             const appealChannel = member.guild.channels.cache.get(APPEAL_CHANNEL_ID);
             if (appealChannel && appealChannel instanceof TextChannel) {
-                appealChannel.send(`${member} has been inactive for over 3 days and has been demoted to the bad borkers role. You can appeal here. Please tag @OG Bwoofa, @Bwoofa & @K9 bork to get their support.`);
-                const appealMessage = await appealChannel.send(`${member}, please explain why you deserve your role back.`);
+                const appealMessage = await appealChannel.send(
+                    `<@${member.id}> Oops, you've stopped bwoofing with us :(\n
+                        Now you are just a @Bad Borker.\n
+                        To bwoof with us again, ask @OG Bwoofa and @Bwoofa to invite you back into the pack!\n
+                        They might need a little convincin' though.\n\n
+                        Get 20+ 👍 from @OG Bwoofa and @Bwoofa you are back babyyyy.\n
+                        Get 10+ 👍, you get @FCFS Bwoofa role.\n
+                        If you get less than <10 👍, better try again later and be more convincing next time.`);
                 await appealMessage.react('👍');
                 await appealMessage.react('👎');
             }
         }
     });
-}, 24 * 60 * 60 * 1000);
+}, /*24 * 60 */ 60 * 1000); // Check every 24 hours
 
 client.on('messageCreate', async (message) => {
     const member = message.member;
@@ -250,8 +260,6 @@ client.on('messageCreate', async (message) => {
     if (!member) return;
 
     const bwoofaRole = message.guild.roles.cache.find(role => role.name === 'Bwoofa')!;
-    const badBorkersRole = message.guild.roles.cache.find(role => role.name === 'Bad Borker')!;
-
     if (member.roles.cache.has(bwoofaRole.id)) {
         client.lastMessageTimes.set(member.id, Date.now());
     }
@@ -267,7 +275,7 @@ client.on('messageReactionAdd', async (reaction, user) => {
         }
     }
 
-    // handleReaction(reaction);
+    handleReaction(reaction);
 });
 
 client.on('messageReactionRemove', async (reaction, user) => {
@@ -280,49 +288,53 @@ client.on('messageReactionRemove', async (reaction, user) => {
         }
     }
 
-    // handleReaction(reaction);
+    handleReaction(reaction);
 });
 
-// const handleReaction = async (reaction: any) => {
-//     const appealChannel = reaction.message.channel;
-//     if (appealChannel.id === APPEAL_CHANNEL_ID) {
-//         const bwoofaRole = reaction.message.guild.roles.cache.find(role => role.name === 'Bwoofa')!;
-//         const fcfsBwoofaRole = reaction.message.guild.roles.cache.find(role => role.name === 'FCFS Bwoofa')!;
-//         const badBorkersRole = reaction.message.guild.roles.cache.find(role => role.name === 'Bad Borker')!;
+const handleReaction = async (reaction: any) => {
+    const appealChannel = reaction.message.channel;
+    if (appealChannel.id === APPEAL_CHANNEL_ID) {
+        const bwoofaRole = reaction.message.guild.roles.cache.find(role => role.name === 'Bwoofa')!;
+        const fcfsBwoofaRole = reaction.message.guild.roles.cache.find(role => role.name === 'FCFS Bwoofa')!;
+        const badBorkersRole = reaction.message.guild.roles.cache.find(role => role.name === 'Bad Borker')!;
 
-//         const thumbsUpVariants = ['👍', '👍🏻', '👍🏼', '👍🏽', '👍🏾', '👍🏿'];
-//         const thumbsUpReactions = reaction.message.reactions.cache.filter(r => thumbsUpVariants.includes(r.emoji.name));
-//         const totalVotes = thumbsUpReactions.reduce((acc, r) => acc + (r.count || 0), 0); // subtracting bot's vote
-//         console.log(`Total Votes: ${totalVotes}`);
+        const thumbsUpVariants = ['👍', '👍🏻', '👍🏼', '👍🏽', '👍🏾', '👍🏿'];
+        const thumbsUpReactions = reaction.message.reactions.cache.filter(r => thumbsUpVariants.includes(r.emoji.name));
+        const totalVotes = thumbsUpReactions.reduce((acc, r) => acc + (r.count || 0), 0) - 1; // subtracting bot's vote
 
-//         const appealMember = await reaction.message.guild.members.fetch(reaction.message.author.id);
-//         if (!appealMember) {
-//             console.error('Appeal member not found in message author.');
-//             return;
-//         }
+        const appealMember = await reaction.message.guild.members.fetch(reaction.message.author.id);
+        if (!appealMember) {
+            console.error('Appeal member not found in message author.');
+            return;
+        }
 
-//         if (totalVotes >= 2) {
-//             await appealMember.roles.remove(fcfsBwoofaRole);
-//             if (!appealMember.roles.cache.has(bwoofaRole.id)) {
-//                 await appealMember.roles.add(bwoofaRole);                
-//                 appealChannel.send(`${appealMember} has successfully appealed and regained the Bwoofa role!`);
-//                 // await reaction.message.delete();
-//             }
-//         } else if (totalVotes >= 1 && totalVotes < 2) {
-//             await appealMember.roles.remove(bwoofaRole);
-//             await appealMember.roles.remove(badBorkersRole);
-//             if (!appealMember.roles.cache.has(fcfsBwoofaRole.id)) {
-//                 await appealMember.roles.add(fcfsBwoofaRole);                
-//                 appealChannel.send(`${appealMember} has successfully appealed and received the FCFS Bwoofa role!`);
-//                 // await reaction.message.delete();
-//             }
-//         } else {
-//             await appealMember.roles.remove(fcfsBwoofaRole);
-//             await appealMember.roles.add(badBorkersRole);
-//             appealChannel.send(`${reaction.message.author} did not get enough votes. You can appeal again.`);
-//         }
-//     }
-// };
+        const highestRole = client.highestRoleAchieved.get(appealMember.id) || 'Bad Borker';
+        if (totalVotes >= 2 && highestRole !== 'Bwoofa') {
+            await appealMember.roles.remove(fcfsBwoofaRole);
+            await appealMember.roles.add(bwoofaRole);
+            client.highestRoleAchieved.set(appealMember.id, 'Bwoofa');
+            appealChannel.send(`${appealMember} Congrats, the bwoofas have fully welcomed you back into the pack. Better stay howling with your frens from now on!`);
+        } else if (totalVotes >= 1 && highestRole !== 'Bwoofa' && highestRole !== 'FCFS Bwoofa') {
+            await appealMember.roles.remove(bwoofaRole);
+            await appealMember.roles.remove(badBorkersRole);
+            await appealMember.roles.add(fcfsBwoofaRole);
+            client.highestRoleAchieved.set(appealMember.id, 'FCFS Bwoofa');
+            appealChannel.send(`${appealMember} The bwoofas have hesitantly invited you back into the pack. Will they fully welcome you back in though?`);
+        } else {
+            await appealMember.roles.remove(fcfsBwoofaRole);
+            await appealMember.roles.add(badBorkersRole);
+            appealChannel.send(
+                `<@${reaction.message.author.id}> Oops, you've stopped bwoofing with us :(\n
+                    Now you are just a @Bad Borker.\n
+                    To bwoof with us again, ask @OG Bwoofa and @Bwoofa to invite you back into the pack!\n
+                    They might need a little convincin' though.\n\n
+                    Get 20+ 👍 from @OG Bwoofa and @Bwoofa you are back babyyyy.\n
+                    Get 10+ 👍, you get @FCFS Bwoofa role.\n
+                    If you get less than <10 👍, better try again later and be more convincing next time.`);
+            
+        }
+    }
+};
 
 // Login to Bot with token
 try {
