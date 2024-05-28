@@ -226,16 +226,21 @@ client.on('guildMemberRemove', async (member) => {
 setInterval(async () => {
     const now = Date.now();
 
-    client.lastMessageTimes.forEach(async (lastMessageTime, memberId) => {
-        const timeDiff = now - lastMessageTime;
+    console.log('client.lastMessageTimes', client.lastMessageTimes);
 
+    client.lastMessageTimes.forEach(async (lastMessageTime, memberId) => {
+        console.log('lastMessageTime', lastMessageTime);
+        console.log('memberId', memberId);
+        const timeDiff = now - lastMessageTime;
+        console.log('timeDiff', timeDiff);
         const member = await client.guilds.cache.get(GUILD_ID)?.members.fetch(memberId);
         if (!member) return;
 
         const dawgTeamRole = member.roles.cache.find(role => role.name === 'Dawg Team');
         const bwoofaRole = member.roles.cache.find(role => role.name === 'Bwoofa');
         const badBorkersRole = member.guild.roles.cache.find(role => role.name === 'Bad Borker');
-        if (timeDiff > /*3 * 24 * 60 */ 60 * 1000 && bwoofaRole && member.roles.cache.has(bwoofaRole.id) && !member.roles.cache.has(dawgTeamRole.id)) {
+        // console.log('bwoofaRole', bwoofaRole);
+        if (timeDiff > /*3 * 24 * 60 */ 60 * 1000 && bwoofaRole && member.roles.cache.has(dawgTeamRole.id)) {
             await member.roles.remove(bwoofaRole);
             await member.roles.add(badBorkersRole);
             const appealChannel = member.guild.channels.cache.get(APPEAL_CHANNEL_ID);
@@ -259,11 +264,11 @@ setInterval(async () => {
 
 client.on('messageCreate', async (message) => {
     const member = message.member;
-
     if (!member) return;
 
-    const bwoofaRole = message.guild.roles.cache.find(role => role.name === 'Bwoofa')!;
-    if (member.roles.cache.has(bwoofaRole.id)) {
+    const dawgTeamRole = message.guild.roles.cache.find(role => role.name === 'Dawg Team')!;
+    console.log('messageCreate', member.roles.cache.has(dawgTeamRole.id));
+    if (member.roles.cache.has(dawgTeamRole.id)) {
         client.lastMessageTimes.set(member.id, Date.now());
     }
 });
@@ -303,6 +308,13 @@ const handleReaction = async (reaction: any) => {
         const badBorkersRole = reaction.message.guild.roles.cache.find(role => role.name === 'Bad Borker')!;
 
         const thumbsUpVariants = ['👍', '👍🏻', '👍🏼', '👍🏽', '👍🏾', '👍🏿'];
+        console.log('reaction.emoji.name', reaction.emoji.name);
+        console.log('thumbsUpVariants', thumbsUpVariants.includes(reaction.emoji.name));
+        if (!thumbsUpVariants.includes(reaction.emoji.name)) {
+            // Ignore reactions that are not thumbs up
+            return;
+        }
+
         const thumbsUpReactions = reaction.message.reactions.cache.filter(r => thumbsUpVariants.includes(r.emoji.name));
         const totalVotes = thumbsUpReactions.reduce((acc, r) => acc + (r.count || 0), 0); // subtracting bot's vote
 
@@ -313,21 +325,24 @@ const handleReaction = async (reaction: any) => {
         }
 
         console.log('appealMember.id', appealMember.id);
-        console.log('appealMember: ', appealMember.roles.cache.has(bwoofaRole.id));
+        console.log('appealMember: ', appealMember.roles.cache.has(dawgTeamRole.id));
         console.log('totalVotes', totalVotes);
-        const highestRole = client.highestRoleAchieved.get(appealMember.id) || 'Bad Borker';
-        if (totalVotes >= 2 && highestRole !== 'Bwoofa' && appealMember.id != '1242124604785557697' && appealMember.roles.cache.has(bwoofaRole.id)) {
+        // const highestRole = client.highestRoleAchieved.get(appealMember.id) || 'Bad Borker';
+        if (totalVotes >= 2 && appealMember.id != '1242124604785557697' && appealMember.roles.cache.has(dawgTeamRole.id)) {
             await appealMember.roles.remove(fcfsBwoofaRole);
             await appealMember.roles.add(bwoofaRole);
-            client.highestRoleAchieved.set(appealMember.id, 'Bwoofa');
+            // client.highestRoleAchieved.set(appealMember.id, 'Bwoofa');
+            await reaction.message.delete();
             appealChannel.send(`${appealMember} Congrats, the bwoofas have fully welcomed you back into the pack. Better stay howling with your frens from now on!`);
-        } else if (totalVotes >= 1 && highestRole !== 'Bwoofa' && highestRole !== 'FCFS Bwoofa' && appealMember.id != '1242124604785557697' && appealMember.roles.cache.has(bwoofaRole.id)) {
-            await appealMember.roles.remove(bwoofaRole);
+        }
+        if (2 > totalVotes && totalVotes >= 1 && appealMember.id != '1242124604785557697' && appealMember.roles.cache.has(dawgTeamRole.id)) {
+            // await appealMember.roles.remove(bwoofaRole);
             await appealMember.roles.remove(badBorkersRole);
             await appealMember.roles.add(fcfsBwoofaRole);
-            client.highestRoleAchieved.set(appealMember.id, 'FCFS Bwoofa');
+            // client.highestRoleAchieved.set(appealMember.id, 'FCFS Bwoofa');
             appealChannel.send(`${appealMember} The bwoofas have hesitantly invited you back into the pack. Will they fully welcome you back in though?`);
-        } else if (totalVotes < 1 && appealMember.id != '1242124604785557697' && appealMember.roles.cache.has(bwoofaRole.id)) {
+        }
+        if (totalVotes < 1 && appealMember.id != '1242124604785557697' && appealMember.roles.cache.has(dawgTeamRole.id)) {
             await appealMember.roles.remove(fcfsBwoofaRole);
             await appealMember.roles.add(badBorkersRole);
             appealChannel.send(
