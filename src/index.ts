@@ -218,7 +218,7 @@ client.on('guildMemberRemove', async (member) => {
                 await inviter.roles.remove(ogRole);
                 generalChannel.send(`${inviter} can earn the OG role after inviting 5 or more members!`);
             }
-        }        
+        }
     }
 });
 
@@ -329,24 +329,31 @@ const handleReaction = async (reaction: any) => {
         console.log('totalVotes', totalVotes);
         // const highestRole = client.highestRoleAchieved.get(appealMember.id) || 'Bad Borker';
         if (totalVotes >= 2 && appealMember.id != '1242124604785557697' && appealMember.roles.cache.has(dawgTeamRole.id)) {
-            await appealMember.roles.remove(fcfsBwoofaRole);
+            if (appealMember.roles.cache.has(fcfsBwoofaRole.id)) {
+                await appealMember.roles.remove(fcfsBwoofaRole);
+            }
             await appealMember.roles.add(bwoofaRole);
             // client.highestRoleAchieved.set(appealMember.id, 'Bwoofa');
             await reaction.message.delete();
             appealChannel.send(`${appealMember} Congrats, the bwoofas have fully welcomed you back into the pack. Better stay howling with your frens from now on!`);
         }
         if (2 > totalVotes && totalVotes >= 1 && appealMember.id != '1242124604785557697' && appealMember.roles.cache.has(dawgTeamRole.id)) {
-            // await appealMember.roles.remove(bwoofaRole);
-            await appealMember.roles.remove(badBorkersRole);
-            await appealMember.roles.add(fcfsBwoofaRole);
-            // client.highestRoleAchieved.set(appealMember.id, 'FCFS Bwoofa');
-            appealChannel.send(`${appealMember} The bwoofas have hesitantly invited you back into the pack. Will they fully welcome you back in though?`);
+            if (!appealMember.roles.cache.has(bwoofaRole.id)) {
+                // await appealMember.roles.remove(bwoofaRole);
+                if (appealMember.roles.cache.has(badBorkersRole.id)) {
+                    await appealMember.roles.remove(badBorkersRole);
+                }
+                await appealMember.roles.add(fcfsBwoofaRole);
+                // client.highestRoleAchieved.set(appealMember.id, 'FCFS Bwoofa');
+                appealChannel.send(`${appealMember} The bwoofas have hesitantly invited you back into the pack. Will they fully welcome you back in though?`);
+            }
         }
         if (totalVotes < 1 && appealMember.id != '1242124604785557697' && appealMember.roles.cache.has(dawgTeamRole.id)) {
-            await appealMember.roles.remove(fcfsBwoofaRole);
-            await appealMember.roles.add(badBorkersRole);
-            appealChannel.send(
-                `<@${reaction.message.author.id}> Oops, you've stopped bwoofing with us 😦
+            if (!appealMember.roles.cache.has(bwoofaRole.id) && !appealMember.roles.cache.has(fcfsBwoofaRole.id)) {
+                // await appealMember.roles.remove(fcfsBwoofaRole);
+                await appealMember.roles.add(badBorkersRole);
+                appealChannel.send(
+                    `<@${reaction.message.author.id}> Oops, you've stopped bwoofing with us 😦
                 Now you are just a @Bad Borker.
                 
                 To bwoof with us again, ask @OG Bwoofa and @Bwoofa to invite you back into the pack!
@@ -354,7 +361,8 @@ const handleReaction = async (reaction: any) => {
                 
                 Get 20+ 👍 from @OG Bwoofa and @Bwoofa you are back babyyyy.
                 Get 10+ 👍, you get @FCFS Bwoofa role.
-                If you get less than <10 👍, better try again later and be more convincing next time.`);            
+                If you get less than <10 👍, better try again later and be more convincing next time.`);
+            }
         }
     }
 };
