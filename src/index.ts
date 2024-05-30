@@ -329,9 +329,8 @@ const handleReaction = async (reaction: any) => {
         console.log('totalVotes', totalVotes);
         // const highestRole = client.highestRoleAchieved.get(appealMember.id) || 'Bad Borker';
         if (totalVotes >= 2 && appealMember.id != '1242124604785557697' && appealMember.roles.cache.has(dawgTeamRole.id)) {
-            if (appealMember.roles.cache.has(fcfsBwoofaRole.id)) {
-                await appealMember.roles.remove(fcfsBwoofaRole);
-            }
+            await appealMember.roles.remove(fcfsBwoofaRole);
+            await appealMember.roles.remove(badBorkersRole);
             if (!appealMember.roles.cache.has(bwoofaRole.id)) {
                 await appealMember.roles.add(bwoofaRole);
                 // client.highestRoleAchieved.set(appealMember.id, 'Bwoofa');
@@ -341,9 +340,7 @@ const handleReaction = async (reaction: any) => {
         if (2 > totalVotes && totalVotes >= 1 && appealMember.id != '1242124604785557697' && appealMember.roles.cache.has(dawgTeamRole.id)) {
             if (!appealMember.roles.cache.has(bwoofaRole.id)) {
                 // await appealMember.roles.remove(bwoofaRole);
-                if (appealMember.roles.cache.has(badBorkersRole.id)) {
-                    await appealMember.roles.remove(badBorkersRole);
-                }
+                await appealMember.roles.remove(badBorkersRole);
                 if (!appealMember.roles.cache.has(fcfsBwoofaRole.id)) {
                     await appealMember.roles.add(fcfsBwoofaRole);
                     // client.highestRoleAchieved.set(appealMember.id, 'FCFS Bwoofa');
