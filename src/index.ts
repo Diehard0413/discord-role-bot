@@ -139,7 +139,8 @@ client.on('messageCreate', async (message) => {
         client.lastMessageTimes.set(member.id, Date.now());
         if (badBorkersRole) {
             try {
-                if (message.channel instanceof TextChannel) { // Check if the channel is a TextChannel
+                const appealChannel = member.guild.channels.cache.get(APPEAL_CHANNEL_ID);
+                if (appealChannel && appealChannel instanceof TextChannel) { // Check if the channel is a TextChannel
                     await message.channel.setRateLimitPerUser(7200);
                 } else {
                     console.log('The channel is not a text channel. Skipping rate limit setting.');
