@@ -269,9 +269,17 @@ client.on('messageCreate', async (message) => {
     if (!member) return;
 
     const dawgTeamRole = message.guild.roles.cache.find(role => role.name === 'Dawg Team')!;
+    const badBorkersRole = message.guild.roles.cache.find(role => role.name === 'Bad Borker')!;
     console.log('messageCreate', member.roles.cache.has(dawgTeamRole.id));
     if (member.roles.cache.has(dawgTeamRole.id)) {
         client.lastMessageTimes.set(member.id, Date.now());
+        if(badBorkersRole) {
+            try {
+                await message.channel.setRateLimitPerUser(7200);
+            } catch (error) {
+                console.error(error);
+            }
+        }
     }
 });
 
