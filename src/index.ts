@@ -121,6 +121,36 @@ client.on('interactionCreate', async (interaction) => {
     }
 });
 
+client.on('messageCreate', async (message) => {
+    const member = message.member;
+    if (!member) return;
+
+    const dawgTeamRole = message.guild.roles.cache.find(role => role.name === 'Dawg Team');
+    const badBorkersRole = message.guild.roles.cache.find(role => role.name === 'Bad Borker');
+    
+    if (!dawgTeamRole) {
+        console.log('Dawg Team role not found');
+        return;
+    }
+
+    console.log('messageCreate', member.roles.cache.has(dawgTeamRole.id));
+    
+    if (member.roles.cache.has(dawgTeamRole.id)) {
+        client.lastMessageTimes.set(member.id, Date.now());
+        if (badBorkersRole) {
+            try {
+                if (message.channel instanceof TextChannel) { // Check if the channel is a TextChannel
+                    await message.channel.setRateLimitPerUser(7200);
+                } else {
+                    console.log('The channel is not a text channel. Skipping rate limit setting.');
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        }
+    }
+});
+
 tracker.on('guildMemberAdd', async (member, type, invite) => {
     const guild = member.guild;
     const generalChannel = guild.channels.cache.get(GENERAL_CHANNEL_ID);
@@ -239,8 +269,8 @@ setInterval(async () => {
         const dawgTeamRole = member.roles.cache.find(role => role.name === 'Dawg Team');
         const bwoofaRole = member.roles.cache.find(role => role.name === 'Bwoofa');
         const badBorkersRole = member.guild.roles.cache.find(role => role.name === 'Bad Borker');
-        // console.log('bwoofaRole', bwoofaRole);
-        if (timeDiff > /*3 * 24 * 60 */ 60 * 1000 && bwoofaRole && member.roles.cache.has(dawgTeamRole.id)) {
+        
+        if (timeDiff > 3 * 24 * 60 * 60 * 1000 && bwoofaRole && member.roles.cache.has(dawgTeamRole.id)) {
             await member.roles.remove(bwoofaRole);
             await member.roles.add(badBorkersRole);
             const appealChannel = member.guild.channels.cache.get(APPEAL_CHANNEL_ID);
@@ -255,31 +285,10 @@ setInterval(async () => {
                     Get 20+ 👍 from @OG Bwoofa and @Bwoofa you are back babyyyy.
                     Get 10+ 👍, you get @FCFS Bwoofa role.
                     If you get less than <10 👍, better try again later and be more convincing next time.`);
-                // await appealMessage.react('👍');
-                // await appealMessage.react('👎');
             }
         }
     });
-}, /*24 * 60 */ 60 * 1000); // Check every 24 hours
-
-client.on('messageCreate', async (message) => {
-    const member = message.member;
-    if (!member) return;
-
-    const dawgTeamRole = message.guild.roles.cache.find(role => role.name === 'Dawg Team')!;
-    const badBorkersRole = message.guild.roles.cache.find(role => role.name === 'Bad Borker')!;
-    console.log('messageCreate', member.roles.cache.has(dawgTeamRole.id));
-    if (member.roles.cache.has(dawgTeamRole.id)) {
-        client.lastMessageTimes.set(member.id, Date.now());
-        if(badBorkersRole) {
-            try {
-                await message.channel.setRateLimitPerUser(7200);
-            } catch (error) {
-                console.error(error);
-            }
-        }
-    }
-});
+}, 24 * 60 * 60 * 1000); // Check every 24 hours
 
 client.on('messageReactionAdd', async (reaction, user) => {
     if (reaction.partial) {
@@ -335,23 +344,21 @@ const handleReaction = async (reaction: any) => {
         console.log('appealMember.id', appealMember.id);
         console.log('appealMember: ', appealMember.roles.cache.has(dawgTeamRole.id));
         console.log('totalVotes', totalVotes);
-        // const highestRole = client.highestRoleAchieved.get(appealMember.id) || 'Bad Borker';
+        
         if (totalVotes >= 2 && appealMember.id != '1242124604785557697' && appealMember.roles.cache.has(dawgTeamRole.id)) {
             await appealMember.roles.remove(fcfsBwoofaRole);
             await appealMember.roles.remove(badBorkersRole);
             if (!appealMember.roles.cache.has(bwoofaRole.id)) {
                 await appealMember.roles.add(bwoofaRole);
-                // client.highestRoleAchieved.set(appealMember.id, 'Bwoofa');
                 appealChannel.send(`${appealMember} Congrats, the bwoofas have fully welcomed you back into the pack. Better stay howling with your frens from now on!`);
             }
         }
         if (2 > totalVotes && totalVotes >= 1 && appealMember.id != '1242124604785557697' && appealMember.roles.cache.has(dawgTeamRole.id)) {
             if (!appealMember.roles.cache.has(bwoofaRole.id)) {
-                // await appealMember.roles.remove(bwoofaRole);
+                await appealMember.roles.remove(bwoofaRole);
                 await appealMember.roles.remove(badBorkersRole);
                 if (!appealMember.roles.cache.has(fcfsBwoofaRole.id)) {
                     await appealMember.roles.add(fcfsBwoofaRole);
-                    // client.highestRoleAchieved.set(appealMember.id, 'FCFS Bwoofa');
                     appealChannel.send(`${appealMember} The bwoofas have hesitantly invited you back into the pack. Will they fully welcome you back in though?`);
                 }
             }
@@ -359,7 +366,6 @@ const handleReaction = async (reaction: any) => {
         if (totalVotes < 1 && appealMember.id != '1242124604785557697' && appealMember.roles.cache.has(dawgTeamRole.id)) {
             if (!appealMember.roles.cache.has(bwoofaRole.id) && !appealMember.roles.cache.has(fcfsBwoofaRole.id)) {
                 if (!appealMember.roles.cache.has(badBorkersRole.id)) {
-                    // await appealMember.roles.remove(fcfsBwoofaRole);
                     await appealMember.roles.add(badBorkersRole);
                     appealChannel.send(
                         `<@${reaction.message.author.id}> Oops, you've stopped bwoofing with us 😦
@@ -382,5 +388,5 @@ try {
     const token = process.env.BOT_TOKEN!;
     client.login(token);
 } catch (error) {
-    console.error(`Error login to BOT at index: ${error}`);
+    console.error(`Error logging into BOT: ${error}`);
 }
