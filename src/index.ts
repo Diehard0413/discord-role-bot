@@ -156,8 +156,13 @@ tracker.on('guildMemberAdd', async (member, type, invite) => {
     const generalChannel = guild.channels.cache.get(GENERAL_CHANNEL_ID);
 
     if (generalChannel && generalChannel instanceof TextChannel) {
-        if (type === 'normal' && invite) {
-            generalChannel.send(`Welcome ${member}! You were invited by ${invite.inviter!.username}!`);
+        if ((type === 'normal' && invite) || type === 'vanity') {
+
+            if (type === 'vanity') {
+                generalChannel.send(`Welcome ${member}! You joined using a custom invite!`);
+            } else {
+                generalChannel.send(`Welcome ${member}! You were invited by ${invite.inviter!.username}!`);
+            }
 
             const inviter = await guild.members.fetch(invite.inviter!.id);
 
@@ -207,8 +212,8 @@ tracker.on('guildMemberAdd', async (member, type, invite) => {
                 ON CONFLICT (member_id) 
                 DO NOTHING
             `, [member.id, inviter.id]);
-        } else if (type === 'vanity') {
-            generalChannel.send(`Welcome ${member}! You joined using a custom invite!`);
+            // } else if (type === 'vanity') {
+            //     generalChannel.send(`Welcome ${member}! You joined using a custom invite!`);
         } else if (type === 'permissions') {
             generalChannel.send(`Welcome ${member}! I can't figure out how you joined because I don't have the "Manage Server" permission!`);
         } else if (type === 'unknown') {
