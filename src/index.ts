@@ -238,16 +238,14 @@ setInterval(async () => {
 
         const dawgTeamRole = member.roles.cache.find(role => role.name === 'Dawg Team');
         const bwoofaRole = member.roles.cache.find(role => role.name === 'Bwoofa');
-        const fcfsBwoofaRole = member.roles.cache.find(role => role.name === 'FCFS Bwoofa');
         const badBorkersRole = member.guild.roles.cache.find(role => role.name === 'Bad Borker');
         // console.log('bwoofaRole', bwoofaRole);
-        if (timeDiff > /*3 * 24 * 60 */ 60 * 1000 && (bwoofaRole || fcfsBwoofaRole) && member.roles.cache.has(dawgTeamRole.id)) {
+        if (timeDiff > /*3 * 24 * 60 */ 60 * 1000 && bwoofaRole && member.roles.cache.has(dawgTeamRole.id)) {
             await member.roles.remove(bwoofaRole);
-            await member.roles.remove(fcfsBwoofaRole);
             await member.roles.add(badBorkersRole);
             const appealChannel = member.guild.channels.cache.get(APPEAL_CHANNEL_ID);
             if (appealChannel && appealChannel instanceof TextChannel) {
-                const appealMessage = await appealChannel.send(
+                await appealChannel.send(
                     `<@${member.id}> Oops, you've stopped bwoofing with us 😦
                     Now you are just a @Bad Borker.
                     
