@@ -145,7 +145,7 @@ tracker.on('guildMemberAdd', async (member, type, invite) => {
     const generalChannel = guild.channels.cache.get(GENERAL_CHANNEL_ID);
 
     if (generalChannel && generalChannel instanceof TextChannel) {
-        if ((type === 'normal' && invite) || type === 'vanity') {
+        if ((type === 'normal' || type === 'vanity') && invite) {
 
             if (type === 'vanity') {
                 generalChannel.send(`Welcome ${member}! You joined using a custom invite!`);
